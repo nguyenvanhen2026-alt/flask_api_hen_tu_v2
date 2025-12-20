@@ -27,7 +27,20 @@ def getall():
     try:
         conn = connect_db()
         cur = conn.cursor(pymysql.cursors.DictCursor)
-        cur.execute("SELECT * FROM dulieu")
+        cur.execute("""
+            SELECT
+                id,
+                local_id,
+                DATE_FORMAT(ngay, '%Y-%m-%d') AS ngay,
+                sothutu,
+                tenhang,
+                soluong,
+                page,
+                pageName,
+                TIME_FORMAT(tgian, '%H:%i:%s') AS tgian
+            FROM dulieu
+        """)
+
         rows = cur.fetchall()
         conn.close()
         return jsonify({"success": True, "data": rows})
