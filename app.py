@@ -195,7 +195,7 @@ def update_stt(id):
         conn = connect_db()
         cur = conn.cursor()
         cur.execute(
-            "UPDATE dulieu SET stt=%s WHERE local_id=%s",
+            "UPDATE dulieu SET sothutu=%s WHERE local_id=%s",
             (new_stt, id)
         )
         conn.commit()
