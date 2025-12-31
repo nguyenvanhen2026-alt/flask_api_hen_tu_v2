@@ -178,6 +178,22 @@ def update_soluong(id):
         return jsonify({"success": True, "updated_id": id})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+# --- Update stt theo id ---
+@app.route("/update_stt/<int:id>", methods=["POST"])
+def update_stt(id):
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No JSON received"}), 400
+        new_stt = data.get("stt")
+        conn = connect_db()
+        cur = conn.cursor()
+        cur.execute("UPDATE dulieu SET stt=%s WHERE local_id=%s", (new_stt, id))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "updated_id": id})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 # --- Delete theo stt + page + ngay ---
 @app.route("/delete_by_page_date", methods=["DELETE"])
