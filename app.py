@@ -160,7 +160,8 @@ def update_tenhang(id):
         conn.close()
         return jsonify({"success": True, "updated_id": id})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 # --- Update soluong theo id ---
 @app.route("/update_soluong/<int:id>", methods=["POST"])
@@ -177,23 +178,36 @@ def update_soluong(id):
         conn.close()
         return jsonify({"success": True, "updated_id": id})
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return jsonify({"success": False, "error": str(e)}), 500
 # --- Update stt theo id ---
 @app.route("/update_stt/<int:id>", methods=["POST"])
 def update_stt(id):
+    conn = None
     try:
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No JSON received"}), 400
+
         new_stt = data.get("stt")
+        if new_stt is None:
+            return jsonify({"success": False, "error": "Missing stt"}), 400
+
         conn = connect_db()
         cur = conn.cursor()
-        cur.execute("UPDATE dulieu SET stt=%s WHERE local_id=%s", (new_stt, id))
+        cur.execute(
+            "UPDATE dulieu SET stt=%s WHERE local_id=%s",
+            (new_stt, id)
+        )
         conn.commit()
-        conn.close()
+
         return jsonify({"success": True, "updated_id": id})
+
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return jsonify({"success": False, "error": str(e)}), 500
+
+    finally:
+        if conn:
+            conn.close()
 
 # --- Delete theo stt + page + ngay ---
 @app.route("/delete_by_page_date", methods=["DELETE"])
@@ -249,8 +263,7 @@ def update_name_by_page():
 
         return jsonify({"success": True, "message": "Updated successfully"})
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)})
-
+       return jsonify({"success": False, "error": str(e)}), 500
 # --- API insert hoặc update ---
 # --- API insert-only --- ok này
 
@@ -283,7 +296,9 @@ def insert_aiven():
         return jsonify({"success": True, "action": "inserted"})
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 #@@@@@@@@@@@@
 @app.route("/get_data_by_date", methods=["GET"])
 def get_data_by_date():
