@@ -42,6 +42,12 @@ def getall():
         """)
 
         rows = cur.fetchall()
+
+        for row in rows:
+            for key in row:
+                if row[key] is not None:
+                    row[key] = str(row[key])
+
         conn.close()
         return jsonify({"success": True, "data": rows})
     except Exception as e:
