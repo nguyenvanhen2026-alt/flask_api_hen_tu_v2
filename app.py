@@ -8,38 +8,34 @@ app = Flask(__name__)
 CORS(app)  # Cho phép CORS nếu Android gọi API
 import pymysql.cursors
 
-def connect_db():
-    return pymysql.connect(
-        host=os.environ.get("AIVEN_HOST"),
-        user=os.environ.get("AIVEN_USER"),
-        password=os.environ.get("AIVEN_PASS"),
-        database=os.environ.get("AIVEN_DB"),
-        port=int(os.environ.get("AIVEN_PORT")),
-        ssl={"ca": os.path.join(os.getcwd(), "ca.pem")}
-    )
-
+# def connect_db():
+#     return pymysql.connect(
+#         host=os.environ.get("AIVEN_HOST"),
+#         user=os.environ.get("AIVEN_USER"),
+#         password=os.environ.get("AIVEN_PASS"),
+#         database=os.environ.get("AIVEN_DB"),
+#         port=int(os.environ.get("AIVEN_PORT")),
+#         ssl={"ca": os.path.join(os.getcwd(), "ca.pem")}
+#     )
+from database import connect_db
+from utils import convert_ngay
+from check_device import register_check_device
+from activate import register_activate
+from validate_token import register_token
+# đăng ký API
+register_check_device(app)
+register_activate(app)
+register_token(app)
 @app.route("/")
 def home():
-    return "API Flask Railway OK!"
+    return "OK 100%"
 
 @app.route("/get_data", methods=["GET"])
 def getall():
     try:
         conn = connect_db()
         cur = conn.cursor(pymysql.cursors.DictCursor)
-        cur.execute("""
-            SELECT
-                id,
-                local_id,
-                DATE_FORMAT(ngay, '%Y-%m-%d') AS ngay,
-                sothutu,
-                tenhang,
-                soluong,
-                page,
-                pageName,
-                TIME_FORMAT(tgian, '%H:%i:%s') AS tgian
-            FROM dulieu
-        """)
+        cur.execute("SELECT * FROM dulieu")
 
         rows = cur.fetchall()
 
@@ -47,7 +43,6 @@ def getall():
             for key in row:
                 if row[key] is not None:
                     row[key] = str(row[key])
-
         conn.close()
         return jsonify({"success": True, "data": rows})
     except Exception as e:
@@ -152,39 +147,6 @@ def get_last_time():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-
-# --- Update tenhang theo id ---
-@app.route("/update_tenhang/<int:id>", methods=["POST"])
-def update_tenhang(id):
-    try:
-        data = request.get_json()
-        new_ten = data.get("tenhang")
-        conn = connect_db()
-        cur = conn.cursor()
-        cur.execute("UPDATE dulieu SET tenhang=%s WHERE local_id=%s", (new_ten, id))
-        conn.commit()
-        conn.close()
-        return jsonify({"success": True, "updated_id": id})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-# --- Update soluong theo id ---
-@app.route("/update_soluong/<int:id>", methods=["POST"])
-def update_soluong(id):
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "error": "No JSON received"}), 400
-        new_sl = data.get("soluong")
-        conn = connect_db()
-        cur = conn.cursor()
-        cur.execute("UPDATE dulieu SET soluong=%s WHERE local_id=%s", (new_sl, id))
-        conn.commit()
-        conn.close()
-        return jsonify({"success": True, "updated_id": id})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
 # --- Update stt theo id ---
 @app.route("/update_stt/<int:id>", methods=["POST"])
 def update_stt(id):
@@ -214,6 +176,37 @@ def update_stt(id):
     finally:
         if conn:
             conn.close()
+# --- Update tenhang theo id ---
+@app.route("/update_tenhang/<int:id>", methods=["POST"])
+def update_tenhang(id):
+    try:
+        data = request.get_json()
+        new_ten = data.get("tenhang")
+        conn = connect_db()
+        cur = conn.cursor()
+        cur.execute("UPDATE dulieu SET tenhang=%s WHERE local_id=%s", (new_ten, id))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "updated_id": id})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+# --- Update soluong theo id ---
+@app.route("/update_soluong/<int:id>", methods=["POST"])
+def update_soluong(id):
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No JSON received"}), 400
+        new_sl = data.get("soluong")
+        conn = connect_db()
+        cur = conn.cursor()
+        cur.execute("UPDATE dulieu SET soluong=%s WHERE local_id=%s", (new_sl, id))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "updated_id": id})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 # --- Delete theo stt + page + ngay ---
 @app.route("/delete_by_page_date", methods=["DELETE"])
@@ -269,7 +262,8 @@ def update_name_by_page():
 
         return jsonify({"success": True, "message": "Updated successfully"})
     except Exception as e:
-       return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "message": str(e)})
+
 # --- API insert hoặc update ---
 # --- API insert-only --- ok này
 
@@ -302,9 +296,7 @@ def insert_aiven():
         return jsonify({"success": True, "action": "inserted"})
 
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
+        return jsonify({"success": False, "error": str(e)})
 #@@@@@@@@@@@@
 @app.route("/get_data_by_date", methods=["GET"])
 def get_data_by_date():
@@ -477,26 +469,26 @@ def get_num_page_by_date():
 
 from datetime import datetime
 
-def convert_ngay(ngay):
-    ngay = ngay.strip()  # XOÁ MỌI KÝ TỰ THỪA
-
-    # Nếu dạng yyyy-MM-dd => parse lại rồi format 100% chuẩn
-    if "-" in ngay and len(ngay) == 10:
-        return datetime.strptime(ngay, "%Y-%m-%d").strftime("%Y-%m-%d")
-
-    # dd/MM/yyyy
-    if "/" in ngay:
-        return datetime.strptime(ngay, "%d/%m/%Y").strftime("%Y-%m-%d")
-
-    # Aiven dạng: Sat, 03 Dec 2025 00:00:00 GMT
-    if "," in ngay and "GMT" in ngay:
-        return datetime.strptime(ngay, "%a, %d %b %Y %H:%M:%S GMT").strftime("%Y-%m-%d")
-
-    # ISO
-    if "T" in ngay:
-        return datetime.strptime(ngay, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d")
-
-    return ngay
+# def convert_ngay(ngay):
+#     ngay = ngay.strip()  # XOÁ MỌI KÝ TỰ THỪA
+#
+#     # Nếu dạng yyyy-MM-dd => parse lại rồi format 100% chuẩn
+#     if "-" in ngay and len(ngay) == 10:
+#         return datetime.strptime(ngay, "%Y-%m-%d").strftime("%Y-%m-%d")
+#
+#     # dd/MM/yyyy
+#     if "/" in ngay:
+#         return datetime.strptime(ngay, "%d/%m/%Y").strftime("%Y-%m-%d")
+#
+#     # Aiven dạng: Sat, 03 Dec 2025 00:00:00 GMT
+#     if "," in ngay and "GMT" in ngay:
+#         return datetime.strptime(ngay, "%a, %d %b %Y %H:%M:%S GMT").strftime("%Y-%m-%d")
+#
+#     # ISO
+#     if "T" in ngay:
+#         return datetime.strptime(ngay, "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d")
+#
+#     return ngay
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
