@@ -23,9 +23,9 @@ from check_device import register_check_device
 from activate import register_activate
 from validate_token import register_token
 # đăng ký API
-# register_check_device(app)
-# register_activate(app)
-# register_token(app)
+register_check_device(app)
+register_activate(app)
+register_token(app)
 @app.route("/")
 def home():
     return "OK 100%"
