@@ -8,5 +8,6 @@ def connect_db():
         password=os.environ.get("AIVEN_PASS"),
         database=os.environ.get("AIVEN_DB"),
         port=int(os.environ.get("AIVEN_PORT")),
-        ssl={"ca": "ca.pem"}
+        # ❌ tắt SSL tạm
+        # ssl={"ca": "ca.pem"}
     )
